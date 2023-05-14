@@ -1,5 +1,3 @@
-// ignore_for_file: invalid_use_of_visible_for_testing_member
-
 import 'dart:math';
 import 'dart:ui' as ui show Image;
 import 'package:extended_image/extended_image.dart';
@@ -182,8 +180,7 @@ void paintExtendedImage(
   if (needSave) {
     canvas.save();
   }
-  if (repeat != ImageRepeat.noRepeat && centerSlice != null) {
-    // Don't clip if an image shader is used.
+  if (repeat != ImageRepeat.noRepeat) {
     canvas.clipRect(paintRect);
   }
   if (flipHorizontally) {
@@ -199,12 +196,9 @@ void paintExtendedImage(
     if (repeat == ImageRepeat.noRepeat) {
       canvas.drawImageRect(image, sourceRect, destinationRect, paint);
     } else {
-      final ImageTilingInfo info =
-          createTilingInfo(repeat, rect, destinationRect, sourceRect);
-      final ImageShader shader = ImageShader(
-          image, info.tmx, info.tmy, info.transform.storage,
-          filterQuality: filterQuality);
-      canvas.drawRect(rect, paint..shader = shader);
+      for (final Rect tileRect
+          in _generateImageTileRects(rect, destinationRect, repeat))
+        canvas.drawImageRect(image, sourceRect, tileRect, paint);
     }
   } else {
     canvas.scale(1 / scale);
@@ -232,8 +226,8 @@ void paintExtendedImage(
   }
 }
 
-List<Rect> _generateImageTileRects(
-    Rect outputRect, Rect fundamentalRect, ImageRepeat repeat) {
+Iterable<Rect> _generateImageTileRects(
+    Rect outputRect, Rect fundamentalRect, ImageRepeat repeat) sync* {
   int startX = 0;
   int startY = 0;
   int stopX = 0;
@@ -251,11 +245,11 @@ List<Rect> _generateImageTileRects(
     stopY = ((outputRect.bottom - fundamentalRect.bottom) / strideY).ceil();
   }
 
-  return <Rect>[
-    for (int i = startX; i <= stopX; ++i)
-      for (int j = startY; j <= stopY; ++j)
-        fundamentalRect.shift(Offset(i * strideX, j * strideY)),
-  ];
+  for (int i = startX; i <= stopX; ++i) {
+    for (int j = startY; j <= stopY; ++j) {
+      yield fundamentalRect.shift(Offset(i * strideX, j * strideY));
+    }
+  }
 }
 
 Rect _scaleRect(Rect rect, double scale) => Rect.fromLTRB(rect.left * scale,

@@ -1,13 +1,15 @@
 import 'package:extended_image/extended_image.dart';
-
-import 'package:extended_image/src/gesture_detector/official.dart';
-
+import 'package:extended_image/src/gesture/page_view/image_qr_scan.dart';
+import 'package:extended_image/src/gesture_detector/drag.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/cupertino.dart';
+import 'dart:ui' as ui;
 
-export 'page_controller/official.dart';
 export 'rendering/sliver_fill.dart';
+export 'widgets/page_controller.dart';
 export 'widgets/sliver_fill.dart';
 
 part 'widgets/page_view.dart';
@@ -20,17 +22,14 @@ final ExtendedPageController _defaultPageController = ExtendedPageController();
 const PageScrollPhysics _kPagePhysics = PageScrollPhysics();
 const ScrollPhysics _defaultScrollPhysics = NeverScrollableScrollPhysics();
 
-PageMetrics _getTestPageMetrics(BuildContext context) {
-  return PageMetrics(
-    axisDirection: AxisDirection.down,
-    minScrollExtent: 0,
-    maxScrollExtent: 10,
-    pixels: 5,
-    viewportDimension: 10,
-    viewportFraction: 1.0,
-    devicePixelRatio: View.of(context).devicePixelRatio,
-  );
-}
+final PageMetrics _testPageMetrics = PageMetrics(
+  axisDirection: AxisDirection.down,
+  minScrollExtent: 0,
+  maxScrollExtent: 10,
+  pixels: 5,
+  viewportDimension: 10,
+  viewportFraction: 1.0,
+);
 
 /// whether should scoll page
 bool _defaultCanScrollPage(GestureDetails? gestureDetails) => true;
@@ -194,7 +193,6 @@ class ExtendedImageGesturePageViewState
   @override
   void initState() {
     super.initState();
-
     _gestureAnimation = GestureAnimation(this, offsetCallBack: (Offset value) {
       final GestureDetails? gestureDetails =
           extendedImageGestureState?.gestureDetails;
@@ -215,10 +213,10 @@ class ExtendedImageGesturePageViewState
             widget.controller.shouldIgnorePointerWhenScrolling) {
       bool canMove = true;
 
-      // user's physics
+      ///user's physics
       if (widget.physics.parent != null) {
-        canMove = widget.physics.parent!
-            .shouldAcceptUserOffset(_getTestPageMetrics(context));
+        canMove =
+            widget.physics.parent!.shouldAcceptUserOffset(_testPageMetrics);
       }
       if (canMove) {
         switch (widget.scrollDirection) {
@@ -311,6 +309,8 @@ class ExtendedImageGesturePageViewState
     super.dispose();
   }
 
+  GlobalKey _globalKey = GlobalKey();
+
   @override
   Widget build(BuildContext context) {
 //    var finallyPhysics = NeverScrollableScrollPhysics();
@@ -331,15 +331,51 @@ class ExtendedImageGesturePageViewState
     );
 
     if (widget.physics.parent == null ||
-        widget.physics.parent!
-            .shouldAcceptUserOffset(_getTestPageMetrics(context))) {
+        widget.physics.parent!.shouldAcceptUserOffset(_testPageMetrics)) {
       result = RawGestureDetector(
         gestures: _gestureRecognizers,
         behavior: HitTestBehavior.opaque,
         child: result,
       );
     }
-    return result;
+    return InkWell(
+      child: RepaintBoundary(key: _globalKey, child: result),
+      onLongPress: () {
+        showCupertinoModalPopup<void>(
+          context: context,
+          builder: (BuildContext context) => CupertinoActionSheet(
+              actions: <CupertinoActionSheetAction>[
+                CupertinoActionSheetAction(
+                  isDefaultAction: true,
+                  onPressed: () async {
+                    Future<ui.Image?> convertWidgetToImage() async {
+                      RenderRepaintBoundary? renderRepaintBoundary =
+                          _globalKey.currentContext?.findRenderObject()
+                              as RenderRepaintBoundary?;
+                      var image =
+                          await renderRepaintBoundary?.toImage(pixelRatio: 1.0);
+                      return image;
+                    }
+
+                    ui.Image? image = await convertWidgetToImage();
+                    if (image == null) {
+                      return;
+                    }
+                    ImageQrScanCenter.instance.onScanImage(image, context);
+                    Navigator.pop(context);
+                  },
+                  child: const Text('识别二维码'),
+                ),
+              ],
+              cancelButton: CupertinoActionSheetAction(
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                child: const Text('取消'),
+              )),
+        );
+      },
+    );
   }
 
   Drag? _drag;

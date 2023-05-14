@@ -16,14 +16,9 @@ class _MemoryUsageViewState extends State<MemoryUsageView> {
   void initState() {
     super.initState();
     VMHelper().addListener(_updateMemoryUsage);
-  }
 
-  @override
-  void didChangeDependencies() {
-    final FlutterView view = View.of(context);
-    _top = view.physicalSize.height / view.devicePixelRatio / 2 - 80;
-    _left = view.physicalSize.width / view.devicePixelRatio / 2 - 40;
-    super.didChangeDependencies();
+    _top = window.physicalSize.height / window.devicePixelRatio / 2 - 80;
+    _left = window.physicalSize.width / window.devicePixelRatio / 2 - 40;
   }
 
   void _updateMemoryUsage() {
