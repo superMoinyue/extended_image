@@ -1,6 +1,9 @@
 import 'package:extended_image/extended_image.dart';
 
 import 'package:extended_image/src/gesture_detector/official.dart';
+import 'package:extended_image/src/gesture/page_view/image_qr_scan.dart';
+import 'package:flutter/cupertino.dart';
+import 'dart:ui' as ui;
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -311,6 +314,8 @@ class ExtendedImageGesturePageViewState
     super.dispose();
   }
 
+  GlobalKey _globalKey = GlobalKey();
+
   @override
   Widget build(BuildContext context) {
 //    var finallyPhysics = NeverScrollableScrollPhysics();
@@ -339,7 +344,44 @@ class ExtendedImageGesturePageViewState
         child: result,
       );
     }
-    return result;
+    return InkWell(
+      child: RepaintBoundary(key: _globalKey, child: result),
+      onLongPress: () {
+        showCupertinoModalPopup<void>(
+          context: context,
+          builder: (BuildContext context) => CupertinoActionSheet(
+              actions: <CupertinoActionSheetAction>[
+                CupertinoActionSheetAction(
+                  isDefaultAction: true,
+                  onPressed: () async {
+                    Future<ui.Image?> convertWidgetToImage() async {
+                      RenderRepaintBoundary? renderRepaintBoundary =
+                          _globalKey.currentContext?.findRenderObject()
+                              as RenderRepaintBoundary?;
+                      var image =
+                          await renderRepaintBoundary?.toImage(pixelRatio: 1.0);
+                      return image;
+                    }
+
+                    ui.Image? image = await convertWidgetToImage();
+                    if (image == null) {
+                      return;
+                    }
+                    ImageQrScanCenter.instance.onScanImage(image, context);
+                    Navigator.pop(context);
+                  },
+                  child: const Text('识别二维码'),
+                ),
+              ],
+              cancelButton: CupertinoActionSheetAction(
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                child: const Text('取消'),
+              )),
+        );
+      },
+    );
   }
 
   Drag? _drag;
