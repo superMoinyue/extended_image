@@ -365,6 +365,28 @@ class ExtendedImageGesturePageViewState
                   },
                   child: const Text('识别二维码'),
                 ),
+                CupertinoActionSheetAction(
+                  isDefaultAction: true,
+                  onPressed: () async {
+                    Future<ui.Image?> convertWidgetToImage() async {
+                      RenderRepaintBoundary? renderRepaintBoundary =
+                          _globalKey.currentContext?.findRenderObject()
+                              as RenderRepaintBoundary?;
+                      var image =
+                          await renderRepaintBoundary?.toImage(pixelRatio: 1.0);
+                      return image;
+                    }
+
+                    ui.Image? image = await convertWidgetToImage();
+                    if (image == null) {
+                      return;
+                    }
+                    // 保存图片到相册
+                    ImageQrScanCenter.instance.saveImageToGallery(image);
+                    Navigator.pop(context);
+                  },
+                  child: const Text('图片保存'),
+                )
               ],
               cancelButton: CupertinoActionSheetAction(
                 onPressed: () {

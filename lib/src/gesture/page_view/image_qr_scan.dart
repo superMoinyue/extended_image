@@ -4,6 +4,8 @@ import 'dart:ui' as ui;
 
 abstract class ImageQrScanDelegate {
   void onScanImage(ui.Image image, BuildContext context);
+  // saveImageToGallery
+  void saveImageToGallery(ui.Image image);
 }
 
 class ImageQrScanCenter {
@@ -25,6 +27,12 @@ class ImageQrScanCenter {
   void onScanImage(ui.Image image, BuildContext context) async {
     if (_delegate != null) {
       _delegate!.onScanImage(image, context);
+    }
+  }
+
+  void saveImageToGallery(ui.Image image) async {
+    if (_delegate != null) {
+      _delegate!.saveImageToGallery(image);
     }
   }
 }
